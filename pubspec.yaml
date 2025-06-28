@@ -10,6 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
   simple_animations: ^5.0.2
+  image_picker: ^1.0.4
 
 dev_dependencies:
   flutter_test:

@@ -55,7 +55,7 @@ class _BooksListPageState extends State<BooksListPage> {
                 )),
           )
         ],
-        title: Container(
+        title: SizedBox(
           height: 45,
           child: TextField(
             cursorColor: Colors.grey,
@@ -74,22 +74,20 @@ class _BooksListPageState extends State<BooksListPage> {
           ),
         ),
       ),
-      body: Container(
-        child: ListView.builder(
-            padding: const EdgeInsets.all(20),
-            itemCount: bookList.length,
-            itemBuilder: (context, index) {
-              return FadeAnimation(
-                  (1.0 + index) / 4, bookComponent(book: bookList[index]));
-            }),
-      ),
+      body: ListView.builder(
+          padding: const EdgeInsets.all(20),
+          itemCount: bookList.length,
+          itemBuilder: (context, index) {
+            return FadeAnimation(
+                (1.0 + index) / 4, bookComponent(book: bookList[index]));
+          }),
     );
   }
 
   bookComponent({required Book book}) {
     return Container(
-      padding: EdgeInsets.all(10),
-      margin: EdgeInsets.only(bottom: 15),
+      padding: const EdgeInsets.all(10),
+      margin: const EdgeInsets.only(bottom: 15),
       decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
           color: Colors.white,
@@ -98,7 +96,7 @@ class _BooksListPageState extends State<BooksListPage> {
               color: Colors.grey.withOpacity(0.2),
               spreadRadius: 0,
               blurRadius: 2,
-              offset: Offset(0, 1),
+              offset: const Offset(0, 1),
             ),
           ]),
       child: Column(
@@ -108,24 +106,24 @@ class _BooksListPageState extends State<BooksListPage> {
             children: [
               Expanded(
                 child: Row(children: [
-                  Container(
+                  SizedBox(
                       width: 60,
                       height: 60,
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(20),
                         child: Image.asset(book.image),
                       )),
-                  SizedBox(width: 10),
+                  const SizedBox(width: 10),
                   Flexible(
                     child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(book.title,
-                              style: TextStyle(
+                              style: const TextStyle(
                                   color: Colors.black,
                                   fontSize: 15,
                                   fontWeight: FontWeight.w500)),
-                          SizedBox(
+                          const SizedBox(
                             height: 5,
                           ),
                           Text(book.editor,
@@ -142,8 +140,8 @@ class _BooksListPageState extends State<BooksListPage> {
                 },
                 child: AnimatedContainer(
                     height: 35,
-                    padding: EdgeInsets.all(5),
-                    duration: Duration(milliseconds: 300),
+                    padding: const EdgeInsets.all(5),
+                    duration: const Duration(milliseconds: 300),
                     decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
@@ -153,7 +151,7 @@ class _BooksListPageState extends State<BooksListPage> {
                         )),
                     child: Center(
                         child: book.isChoosen
-                            ? Icon(
+                            ? const Icon(
                                 Icons.favorite,
                                 color: Colors.red,
                               )
@@ -164,63 +162,60 @@ class _BooksListPageState extends State<BooksListPage> {
               )
             ],
           ),
-          SizedBox(
+          const SizedBox(
             height: 20,
           ),
-          Container(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding:
-                          EdgeInsets.symmetric(vertical: 8, horizontal: 15),
-                      decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          color: Colors.grey.shade200),
-                      child: Text(
-                        book.subject,
-                        style: TextStyle(color: Colors.black),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 15),
+                    decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        color: Colors.grey.shade200),
+                    child: Text(
+                      book.subject,
+                      style: const TextStyle(color: Colors.black),
+                    ),
+                  ),
+                  const SizedBox(
+                    width: 10,
+                  ),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 8, horizontal: 15),
+                    decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        color: Color(int.parse("0xff${book.statutColor}"))
+                            .withAlpha(20)),
+                    child: Text(
+                      book.state,
+                      style: TextStyle(
+                        color: Color(int.parse("0xff${book.statutColor}")),
                       ),
                     ),
-                    SizedBox(
-                      width: 10,
+                  ),
+                  const SizedBox(
+                    width: 10,
+                  ),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 8, horizontal: 15),
+                    decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        color: Color(int.parse("0xff${book.statutColor}"))
+                            .withAlpha(20)),
+                    child: Text(
+                      book.statut,
+                      style: TextStyle(
+                          color: Color(int.parse("0xff${book.statutColor}"))),
                     ),
-                    Container(
-                      padding:
-                          EdgeInsets.symmetric(vertical: 8, horizontal: 15),
-                      decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          color: Color(int.parse("0xff${book.statutColor}"))
-                              .withAlpha(20)),
-                      child: Text(
-                        book.state,
-                        style: TextStyle(
-                          color: Color(int.parse("0xff${book.statutColor}")),
-                        ),
-                      ),
-                    ),
-                    SizedBox(
-                      width: 10,
-                    ),
-                    Container(
-                      padding:
-                          EdgeInsets.symmetric(vertical: 8, horizontal: 15),
-                      decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          color: Color(int.parse("0xff${book.statutColor}"))
-                              .withAlpha(20)),
-                      child: Text(
-                        book.statut,
-                        style: TextStyle(
-                            color: Color(int.parse("0xff${book.statutColor}"))),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                  ),
+                ],
+              ),
+            ],
           )
         ],
       ),
