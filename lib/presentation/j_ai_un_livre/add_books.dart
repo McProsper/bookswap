@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import '../../app/routes.dart';
+import '../../services/api_service.dart';
 import '../../../core/constants/education_constants.dart';
-import '../../../core/utils/add_book_form_utils.dart';
 
 class AddBooksPage extends StatefulWidget {
   const AddBooksPage({Key? key}) : super(key: key);
@@ -14,14 +16,26 @@ class _AddBooksPageState extends State<AddBooksPage> {
   final _formKey = GlobalKey<FormState>();
 
   File? _image;
-  String? _titre, _auteur, _editeur, _classe;
+  String? _title, _author, _level;
+  String _condition = 'Neuf';  
   String _systeme = 'Primaire';
-  bool _bonEtat = false, _disponible = false;
-  final List<String> _matieres = [];
+  bool _isLoading = false;
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _image = File(pickedFile.path);
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final classes = _systeme == 'Primaire' ? classesPrimaire : classesSecondaire;
+    final classes = _systeme == 'Primaire' ? classesPrimaire : 
+      _systeme == 'Collège' ? classesCollege : 
+      _systeme == 'Autre' ? [''] : classesLycee;
 
     return Scaffold(
       backgroundColor: Colors.grey[300],
@@ -37,14 +51,8 @@ class _AddBooksPageState extends State<AddBooksPage> {
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 28),
                 ),
                 const SizedBox(height: 20),
-
                 GestureDetector(
-                  onTap: () async {
-                    final pickedImage = await BookFormUtils.pickImageFromGallery(context);
-                    if (pickedImage != null) {
-                      setState(() => _image = pickedImage);
-                    }
-                  },
+                  onTap: _pickImage,
                   child: _image == null
                       ? _buildImagePlaceholder()
                       : ClipRRect(
@@ -52,82 +60,116 @@ class _AddBooksPageState extends State<AddBooksPage> {
                           child: Image.file(_image!, height: 150),
                         ),
                 ),
-
                 const SizedBox(height: 20),
-                _buildInput('Titre', onSaved: (val) => _titre = val),
-                _buildInput('Auteur', onSaved: (val) => _auteur = val),
-                _buildInput('Éditeur', onSaved: (val) => _editeur = val),
+                _buildInput('Titre', onSaved: (val) => _title = val),
+                _buildInput('Auteur', onSaved: (val) => _author = val),
 
                 _buildDropdown(
                   label: 'Système éducatif',
                   value: _systeme,
-                  items: ['Primaire', 'Secondaire'],
+                  items: ['Primaire', 'Collège', 'Lycée', 'Autre'],
                   onChanged: (val) => setState(() {
                     _systeme = val!;
-                    _classe = null;
-                  }),
+                    _level = null;
+                  }),                                                                                                                                             
                 ),
 
-                _buildDropdown(
+                if(_systeme != 'Autre') _buildDropdown(
                   label: 'Classe',
-                  value: _classe,
+                  value: _level,
                   items: classes,
-                  onChanged: (val) => setState(() => _classe = val),
+                  onChanged: (val) => setState(() => _level = val),
                 ),
-
+                
                 const SizedBox(height: 10),
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: Text("Matières", style: TextStyle(fontWeight: FontWeight.bold)),
+                  child: Text("État du livre", style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
-                Wrap(
-                  spacing: 8,
-                  children: matieres.map((matiere) {
-                    return FilterChip(
-                      label: Text(matiere),
-                      selected: _matieres.contains(matiere),
-                      onSelected: (selected) {
+                Row(
+                  children: [
+                    Radio<String>(
+                      value: 'Neuf',
+                      groupValue: _condition,
+                      onChanged: (value) {
                         setState(() {
-                          selected ? _matieres.add(matiere) : _matieres.remove(matiere);
+                          _condition = value!;
                         });
                       },
-                    );
-                  }).toList(),
+                    ),
+                    const Text('Neuf'),
+                    Radio<String>(
+                      value: 'Occasion',
+                      groupValue: _condition,              
+                      onChanged: (value) {
+                        setState(() {
+                          _condition = value!;
+                        });
+                      },
+                    ),
+                    const Text('Occasion'),
+                  ],
                 ),
-
-                _buildCheckbox('Bon état', _bonEtat, (val) => setState(() => _bonEtat = val)),
-                _buildCheckbox('Disponible', _disponible, (val) => setState(() => _disponible = val)),
-
                 const SizedBox(height: 20),
-                GestureDetector(
-                  onTap: () {
-                    _formKey.currentState?.save();
-                    BookFormUtils.logFormValues(
-                      titre: _titre,
-                      auteur: _auteur,
-                      editeur: _editeur,
-                      classe: _classe,
-                      systeme: _systeme,
-                      bonEtat: _bonEtat,
-                      disponible: _disponible,
-                      matieres: _matieres,
-                      image: _image,
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.deepOrangeAccent,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Center(
-                      child: Text(
-                        "Soumettre",
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                _isLoading
+                    ? const CircularProgressIndicator()
+                    : GestureDetector(
+                        onTap: () async {
+                          _formKey.currentState?.save();
+                          if (_image == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Veuillez sélectionner une image')),
+                            );
+                            return;
+                          }
+                          setState(() => _isLoading = true);
+                          try {
+                            final imageUrl = await ApiService().uploadImage(_image!);
+                            if (imageUrl == null) {
+                              throw Exception('Échec de l’upload de l’image');
+                            }
+                            await ApiService().addBook(
+                              title: _title ?? '',
+                              author: _author ?? '',
+                              systeme: _systeme,
+                              level: _level ?? '',
+                              condition: _condition,
+                              imageUrl: imageUrl,
+                            );
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Livre ajouté avec succès !')),
+                            );
+                            setState(() {
+                              _image = null;
+                              _title = null;
+                              _author = null;
+                              _systeme = 'Primaire';
+                              _level = null;
+                              _condition = 'Neuf';
+                            });
+                            // sleep(const Duration(seconds: 3));
+                            Navigator.pushReplacementNamed(context, AppRoutes.choice);
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Erreur: $e')),
+                            );
+                          }
+                          setState(() => _isLoading = false);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.deepOrangeAccent,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              "Publier le livre",
+                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
@@ -191,14 +233,6 @@ class _AddBooksPageState extends State<AddBooksPage> {
         items: items.map((item) => DropdownMenuItem(value: item, child: Text(item))).toList(),
         onChanged: onChanged,
       ),
-    );
-  }
-
-  Widget _buildCheckbox(String title, bool value, void Function(bool) onChanged) {
-    return CheckboxListTile(
-      title: Text(title),
-      value: value,
-      onChanged: (val) => onChanged(val!),
     );
   }
 }

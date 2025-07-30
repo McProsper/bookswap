@@ -1,34 +1,34 @@
-// import 'package:flutter/material.dart';
-
 class Book {
-  final String image;
+  final String id;
   final String title;
   final String author;
-  final String editor;
-  final String classe;
-  final String subject;
-  final String category;
-  final String state;
-  final String statut;
-  final String statutColor;
-  
-  bool isChoosen;
+  final String level;
+  final String condition;
+  final String imageUrl;
+  final String systeme;
+  // final String? classe;
 
-  Book(this.image, this.title, this.author, this.editor, this.classe, this.subject, this.category, this.state, this.statut, this.statutColor, this.isChoosen);
+  Book({
+    required this.id,
+    required this.title,
+    required this.author,
+    required this.level,
+    required this.condition,
+    required this.imageUrl,
+    required this.systeme,
+    // this.classe,
+  });
 
   factory Book.fromJson(Map<String, dynamic> json) {
     return Book(
-      json['image'], 
-      json['title'], 
-      json['author'], 
-      json['editor'], 
-      json['classe'],
-      json['subject'],
-      json['category'],
-      json['state'],
-      json['statut'],
-      json['statutColor'],
-      json['isChoosen']
+      id: json['_id'],
+      title: json['title'],
+      author: json['author'] ?? 'Inconnu',
+      level: json['level'],
+      condition: json['condition'],
+      imageUrl: json['imageUrl'],
+      systeme: json['systeme'] ?? '',
+      // classe: json['classe'],
     );
   }
 }

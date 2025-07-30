@@ -1,5 +1,5 @@
-import 'package:bookswap/presentation/j_ai_un_livre/add_books.dart';
-import 'package:bookswap/presentation/je_recherche_un_livre/books_list_page.dart';
+import 'package:second_app/presentation/j_ai_un_livre/add_books.dart';
+import 'package:second_app/presentation/je_recherche_un_livre/books_list_page.dart';
 import 'package:flutter/material.dart';
 
 class ChoicePage extends StatefulWidget {

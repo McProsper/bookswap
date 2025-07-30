@@ -1,8 +1,7 @@
-import 'dart:convert';
-import 'package:bookswap/data/models/books.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:bookswap/core/animations/fade_animation.dart';
+import '../../services/api_service.dart';
+import '../../app/routes.dart';
+import 'package:second_app/core/animations/fade_animation.dart';
 
 class BooksListPage extends StatefulWidget {
   const BooksListPage({super.key});
@@ -12,21 +11,33 @@ class BooksListPage extends StatefulWidget {
 }
 
 class _BooksListPageState extends State<BooksListPage> {
-  List<dynamic> bookList = [];
+  final _searchController = TextEditingController();
+  String _selectedLevel = 'Tous';
+  String _selectedCondition = 'Tous';
+  List<dynamic> _books = [];
+  bool _isLoading = false;
 
-  Future<void> readJson() async {
-    final String response = await rootBundle.loadString('/books.json');
-    final data = await json.decode(response);
-
-    setState(() {
-      bookList = data['books'].map((data) => Book.fromJson(data)).toList();
-    });
+  Future<void> _searchBooks() async {
+    setState(() => _isLoading = true);
+    try {
+      final books = await ApiService().searchBooks(
+        query: _searchController.text,
+        level: _selectedLevel,
+        condition: _selectedCondition,
+      );
+      setState(() => _books = books);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur: $e')),
+      );
+    }
+    setState(() => _isLoading = false);
   }
 
   @override
   void initState() {
     super.initState();
-    readJson();
+    _searchBooks();
   }
 
   @override
@@ -35,10 +46,13 @@ class _BooksListPageState extends State<BooksListPage> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leadingWidth: 20,
+        toolbarHeight: 80,
+        leadingWidth: 60,
         leading: IconButton(
-            padding: const EdgeInsets.only(left: 20),
-            onPressed: () {},
+            padding: const EdgeInsets.only(left: 25, right: 25),
+            onPressed: () {
+              Navigator.pushReplacementNamed(context, AppRoutes.choice);
+            },
             icon: Icon(
               Icons.arrow_back_ios,
               color: Colors.grey.shade600,
@@ -48,9 +62,73 @@ class _BooksListPageState extends State<BooksListPage> {
             padding: const EdgeInsets.all(8.0),
             child: IconButton(
                 iconSize: 30,
-                onPressed: () {},
+                onPressed: () async {
+                  await showModalBottomSheet(
+                    context: context,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                    ),
+                    builder: (context) {
+                      String tempLevel = _selectedLevel;
+                      String tempCondition = _selectedCondition;
+                      return StatefulBuilder(
+                        builder: (context, setModalState) {
+                          return Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text('Filtrer les livres', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                                SizedBox(height: 16),
+                                DropdownButtonFormField<String>(
+                                  value: tempLevel,
+                                  decoration: InputDecoration(labelText: 'Système éducatif'),
+                                  items: ['Tous', 'Primaire', 'Collège', 'Lycée']
+                                      .map((level) => DropdownMenuItem(
+                                            value: level,
+                                            child: Text(level),
+                                          ))
+                                      .toList(),
+                                  onChanged: (value) {
+                                    setModalState(() => tempLevel = value ?? 'Tous');
+                                  },
+                                ),
+                                SizedBox(height: 16),
+                                DropdownButtonFormField<String>(
+                                  value: tempCondition,
+                                  decoration: InputDecoration(labelText: 'État'),
+                                  items: ['Tous', 'Neuf', 'Occasion']
+                                      .map((condition) => DropdownMenuItem(
+                                            value: condition,
+                                            child: Text(condition),
+                                          ))
+                                      .toList(),
+                                  onChanged: (value) {
+                                    setModalState(() => tempCondition = value ?? 'Tous');
+                                  },
+                                ),
+                                SizedBox(height: 24),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      _selectedLevel = tempLevel;
+                                      _selectedCondition = tempCondition;
+                                    });
+                                    Navigator.pop(context);
+                                    _searchBooks();
+                                  },
+                                  child: Text('Appliquer'),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  );
+                },
                 icon: Icon(
-                  Icons.notifications_none,
+                  Icons.filter_alt_outlined,
                   color: Colors.grey.shade400,
                 )),
           )
@@ -58,6 +136,7 @@ class _BooksListPageState extends State<BooksListPage> {
         title: SizedBox(
           height: 45,
           child: TextField(
+            controller: _searchController,
             cursorColor: Colors.grey,
             decoration: InputDecoration(
               contentPadding:
@@ -68,23 +147,34 @@ class _BooksListPageState extends State<BooksListPage> {
               border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(50),
                   borderSide: BorderSide.none),
-              hintText: "Chercher ex. L'Excellence en SVTEHB",
+              hintText: "Rechercher un livre",//"Chercher ex. L'Excellence en SVTEHB",
               hintStyle: const TextStyle(fontSize: 14),
             ),
+            onChanged: (value) => _searchBooks(),
           ),
         ),
       ),
-      body: ListView.builder(
+      body: 
+        _isLoading
+        ? Center(child: CircularProgressIndicator())
+        : ListView.builder(
           padding: const EdgeInsets.all(20),
-          itemCount: bookList.length,
+          itemCount: _books.length,
           itemBuilder: (context, index) {
             return FadeAnimation(
-                (1.0 + index) / 4, bookComponent(book: bookList[index]));
+                (1.0 + index) / 4, bookComponent(book: _books[index]));
           }),
     );
   }
 
-  bookComponent({required Book book}) {
+  bookComponent({required dynamic book}) {
+    String imageUrl = book['imageUrl'] ?? '';
+    if (imageUrl.isNotEmpty) {
+      final parts = imageUrl.split('/upload/');
+      if (parts.length == 2) {
+        imageUrl = '${parts[0]}/upload/w_80,h_80,c_fill/${parts[1]}';
+      }
+    }
     return Container(
       padding: const EdgeInsets.all(10),
       margin: const EdgeInsets.only(bottom: 15),
@@ -111,14 +201,16 @@ class _BooksListPageState extends State<BooksListPage> {
                       height: 60,
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(20),
-                        child: Image.asset(book.image),
+                        child: imageUrl != ""
+                          ? Image.network(imageUrl, width: 50, height: 50, fit: BoxFit.cover)
+                          : Icon(Icons.book),//Image.network(book.imageUrl, fit: BoxFit.cover),
                       )),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 20),
                   Flexible(
                     child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(book.title,
+                          Text(book['title'],
                               style: const TextStyle(
                                   color: Colors.black,
                                   fontSize: 15,
@@ -126,40 +218,18 @@ class _BooksListPageState extends State<BooksListPage> {
                           const SizedBox(
                             height: 5,
                           ),
-                          Text(book.editor,
+                          Text('author: ' +book['author'],
                               style: TextStyle(color: Colors.grey[500])),
+                          const SizedBox(
+                            height: 5,
+                          ),
+                          if (book['level'] != null && book['level'] != '')
+                            Text('classe: ' + book['level'], style: TextStyle(color: Colors.grey[500], fontSize: 12)),
                         ]),
                   )
                 ]),
               ),
-              GestureDetector(
-                onTap: () {
-                  setState(() {
-                    book.isChoosen = !book.isChoosen;
-                  });
-                },
-                child: AnimatedContainer(
-                    height: 35,
-                    padding: const EdgeInsets.all(5),
-                    duration: const Duration(milliseconds: 300),
-                    decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: book.isChoosen
-                              ? Colors.red.shade100
-                              : Colors.grey.shade300,
-                        )),
-                    child: Center(
-                        child: book.isChoosen
-                            ? const Icon(
-                                Icons.favorite,
-                                color: Colors.red,
-                              )
-                            : Icon(
-                                Icons.favorite_outline,
-                                color: Colors.grey.shade600,
-                              ))),
-              )
+              SizedBox.shrink(),
             ],
           ),
           const SizedBox(
@@ -176,7 +246,7 @@ class _BooksListPageState extends State<BooksListPage> {
                         borderRadius: BorderRadius.circular(12),
                         color: Colors.grey.shade200),
                     child: Text(
-                      book.subject,
+                      book['systeme'],
                       style: const TextStyle(color: Colors.black),
                     ),
                   ),
@@ -188,29 +258,10 @@ class _BooksListPageState extends State<BooksListPage> {
                         const EdgeInsets.symmetric(vertical: 8, horizontal: 15),
                     decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(12),
-                        color: Color(int.parse("0xff${book.statutColor}"))
-                            .withAlpha(20)),
+                        color: Colors.grey.shade200),
                     child: Text(
-                      book.state,
-                      style: TextStyle(
-                        color: Color(int.parse("0xff${book.statutColor}")),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(
-                    width: 10,
-                  ),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(vertical: 8, horizontal: 15),
-                    decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        color: Color(int.parse("0xff${book.statutColor}"))
-                            .withAlpha(20)),
-                    child: Text(
-                      book.statut,
-                      style: TextStyle(
-                          color: Color(int.parse("0xff${book.statutColor}"))),
+                      book['condition'],
+                      style: const TextStyle(color: Colors.black),
                     ),
                   ),
                 ],
