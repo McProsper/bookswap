@@ -1,6 +1,6 @@
 {
-    "name": "bookswap",
-    "short_name": "bookswap",
+    "name": "second_app",
+    "short_name": "second_app",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
